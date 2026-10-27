@@ -1,0 +1,55 @@
+name: Release
+
+# Push a tag matching lib/octorail/version.rb (e.g. `git tag v1.0.0 && git push --tags`).
+# Publishes to RubyGems via Trusted Publishing (OIDC), so no API key is stored in the repo.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Publish to RubyGems
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write # creates the GitHub release
+      id-token: write # exchanges the OIDC token for a short-lived RubyGems key
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Check tag, version and changelog
+        run: |
+          version=$(ruby -Ilib -roctorail/version -e 'print Octorail::VERSION')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match Octorail::VERSION $version"
+            exit 1
+          fi
+          ruby -e '
+            v = ARGV[0]
+            notes = File.read("CHANGELOG.md")[/^## \[#{Regexp.escape(v)}\][^\n]*\n(.*?)(?=^## \[|^\[)/m, 1]
+            abort "::error::No CHANGELOG.md entry for #{v}" if notes.to_s.strip.empty?
+            File.write("release-notes.md", notes.strip + "\n")
+          ' "$version"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - run: bundle exec rspec
+      - run: bundle exec rubocop
+
+      - uses: rubygems/configure-rubygems-credentials@v1.0.0
+
+      - name: Build and push the gem
+        run: |
+          gem build octorail.gemspec
+          gem push "octorail-$VERSION.gem"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "octorail-$VERSION.gem" --title "$GITHUB_REF_NAME" --notes-file release-notes.md

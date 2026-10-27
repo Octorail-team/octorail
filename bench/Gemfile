@@ -1,0 +1,11 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+gemspec path: ".."
+
+gem "benchmark-ips", "~> 2.15"
+gem "decouplio", "1.0.0rc"
+gem "trailblazer-macro", "~> 2.1"
+gem "trailblazer-operation", "~> 0.11"
+gem "yaso", "~> 1.4"

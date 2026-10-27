@@ -1,0 +1,23 @@
+x-ruby: &ruby
+  working_dir: /gem
+  stdin_open: true
+  tty: true
+
+services:
+  ruby33:
+    <<: *ruby
+    build: { context: ., args: { RUBY_VERSION: "3.3" } }
+    volumes: [".:/gem", "bundle33:/bundle"]
+  ruby34:
+    <<: *ruby
+    build: { context: ., args: { RUBY_VERSION: "3.4" } }
+    volumes: [".:/gem", "bundle34:/bundle"]
+  ruby40:
+    <<: *ruby
+    build: { context: ., args: { RUBY_VERSION: "4.0" } }
+    volumes: [".:/gem", "bundle40:/bundle"]
+
+volumes:
+  bundle33:
+  bundle34:
+  bundle40:

@@ -1,0 +1,11 @@
+/.bundle/
+/pkg/
+/tmp/
+/coverage/
+/doc/
+.rspec_status
+Gemfile.lock
+*.gem
+bench/Gemfile.lock
+/DESIGN.md
+/vendor/

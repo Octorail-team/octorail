@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Ruby ${{ matrix.ruby }}${{ matrix.yjit && ' + YJIT' || '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # pushes the coverage badge to the badges branch
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.3", "3.4", "4.0"]
+        yjit: [false, true]
+    env:
+      RUBY_YJIT_ENABLE: ${{ matrix.yjit && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rspec
+      - name: Publish coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.ruby == '3.4' && !matrix.yjit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pct=$(ruby -rjson -e 'puts JSON.parse(File.read("coverage/.last_run.json")).dig("result", "line").round(1)')
+          color=$(ruby -e 'p = ARGV[0].to_f; puts(p >= 95 ? "brightgreen" : p >= 85 ? "green" : p >= 75 ? "yellow" : "red")' "$pct")
+          mkdir badges && cd badges && git init -q -b badges
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s%%","color":"%s"}\n' "$pct" "$color" > coverage.json
+          git add coverage.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -qm "Update coverage badge: $pct%"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges

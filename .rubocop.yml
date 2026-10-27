@@ -1,0 +1,49 @@
+plugins:
+  - rubocop-performance
+  - rubocop-rake
+  - rubocop-rspec
+
+# Keep RuboCop's default excludes (vendor/, node_modules/, ...); CI installs gems into vendor/bundle.
+inherit_mode:
+  merge:
+    - Exclude
+
+AllCops:
+  TargetRubyVersion: 3.3
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    # Benchmarks mimic each compared library's own idioms (e.g. Trailblazer's `fail`).
+    - bench/**/*
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/Documentation:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Max: 4
+
+# Scenario specs build a whole operation inline; that's the point, not a smell.
+RSpec/ExampleLength:
+  Max: 20
+
+Metrics/AbcSize:
+  Exclude:
+    - spec/**/*
+
+Metrics/MethodLength:
+  Exclude:
+    - spec/**/*
+
+Layout/LineLength:
+  Max: 120
+
+# Step methods return truthy/falsy by design; they are not predicates.
+Naming/PredicateMethod:
+  Exclude:
+    - spec/**/*
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
